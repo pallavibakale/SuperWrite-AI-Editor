@@ -24,35 +24,32 @@ export async function performRewrite(
     return;
   }
 
-  // Visual feedback: user could implement a loading mark here if desired,
-  // for now we handle loading state in React.
-
   try {
-    // 1. Backend Call
+    // 1. Backend Call (Now using real Gemini API)
     const response = await mockRewriteApi({
       text: info.textContent,
       nodeType: info.nodeType,
       intent
     });
 
-    // 2. Create Transaction
-    // We strictly use replaceWith to insert a text node. 
-    // This preserves the parent block node (e.g., if it was an H1, it stays an H1).
-    // It also keeps surrounding structure intact.
+    if (response.rewrittenText === response.originalText) {
+      // No changes needed or API failed silently
+      return;
+    }
+
+    // 2. Create Transaction for "Track Changes" visualization
     const tr: Transaction = view.state.tr;
+
+    // Step A: Mark the ORIGINAL selection as "deleted" (Red highlight + Strikethrough)
+    // We apply the 'delete' mark to the existing range.
+    tr.addMark(info.from, info.to, schema.marks.delete.create());
+
+    // Step B: Insert the NEW text immediately after the original text.
+    // We create a text node that already has the 'insert' mark (Green highlight) applied.
+    const newTextNode = schema.text(response.rewrittenText, [schema.marks.insert.create()]);
     
-    // Create a text node with the new content
-    const newTextNode = schema.text(response.rewrittenText);
-
-    // Replace the specific range. 
-    // Note: This replaces text AND marks inside the selection.
-    // If we wanted to preserve internal marks (bold/italic) inside the new text,
-    // the AI logic would need to return structured data or we'd need a mapping heuristic.
-    // For this Lite version, we treat the rewrite as plain text replacement as per reqs.
-    tr.replaceWith(info.from, info.to, newTextNode);
-
-    // Optional: Add a comment mark to indicate AI touched this
-    // tr.addMark(info.from, info.from + newTextNode.nodeSize, schema.marks.insert.create());
+    // Insert at the end of the current selection (info.to)
+    tr.insert(info.to, newTextNode);
 
     // Dispatch
     view.dispatch(tr);
@@ -60,6 +57,5 @@ export async function performRewrite(
 
   } catch (e) {
     console.error("Rewrite failed:", e);
-    // Handle error (toast notification, etc)
   }
 }
