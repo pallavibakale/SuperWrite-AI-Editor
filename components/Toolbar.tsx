@@ -1,0 +1,140 @@
+import React from 'react';
+import { EditorView } from 'prosemirror-view';
+import { toggleH1, toggleH2, toggleComment, toggleParagraph } from '../editor/editorSetup';
+import { performRewrite } from '../editor/aiActions';
+import { getSelectionInfo } from '../editor/selectionUtils';
+import { RewriteIntent } from '../types';
+import { 
+  Heading1, 
+  Heading2, 
+  MessageSquarePlus, 
+  Sparkles, 
+  Type, 
+  Loader2 
+} from 'lucide-react';
+import { clsx } from 'clsx';
+
+interface ToolbarProps {
+  view: EditorView | null;
+  editorStateHash: number; // Used to force re-render when editor state changes
+}
+
+export const Toolbar: React.FC<ToolbarProps> = ({ view, editorStateHash }) => {
+  const [isRewriting, setIsRewriting] = React.useState(false);
+
+  if (!view) return <div className="h-12 border-b border-gray-200 bg-gray-50 animate-pulse" />;
+
+  const { state, dispatch } = view;
+  const selectionInfo = getSelectionInfo(state);
+  
+  // Handlers
+  const handleToggleH1 = () => {
+    toggleH1(state, dispatch);
+    view.focus();
+  };
+
+  const handleToggleH2 = () => {
+    toggleH2(state, dispatch);
+    view.focus();
+  };
+
+  const handleToggleP = () => {
+    toggleParagraph(state, dispatch);
+    view.focus();
+  };
+
+  const handleToggleComment = () => {
+    toggleComment(state, dispatch);
+    view.focus();
+  };
+
+  const handleRewrite = async () => {
+    if (!selectionInfo.isValid) {
+      console.warn("Invalid selection detected by UI handler");
+      return;
+    }
+    
+    setIsRewriting(true);
+    await performRewrite(view, RewriteIntent.CLARIFY);
+    setIsRewriting(false);
+  };
+
+  // Check active states for styles
+  // Ideally use a helper to check active marks/nodes
+  
+  return (
+    <div className="flex items-center gap-2 p-2 bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
+      <div className="flex items-center gap-1 border-r border-gray-200 pr-2 mr-1">
+        <ToolbarButton 
+          onClick={handleToggleP} 
+          icon={<Type size={18} />} 
+          label="Text" 
+          title="Normal Text"
+        />
+        <ToolbarButton 
+          onClick={handleToggleH1} 
+          icon={<Heading1 size={18} />} 
+          label="H1" 
+          title="Heading 1"
+        />
+        <ToolbarButton 
+          onClick={handleToggleH2} 
+          icon={<Heading2 size={18} />} 
+          label="H2" 
+          title="Heading 2"
+        />
+      </div>
+
+      <div className="flex items-center gap-1 border-r border-gray-200 pr-2 mr-1">
+        <ToolbarButton 
+          onClick={handleToggleComment} 
+          icon={<MessageSquarePlus size={18} />} 
+          label="Comment" 
+          title="Add Comment Mark"
+        />
+      </div>
+
+      <div className="flex items-center gap-1 ml-auto">
+        <button
+          onClick={handleRewrite}
+          disabled={!selectionInfo.isValid || isRewriting}
+          className={clsx(
+            "flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
+            "border",
+            (!selectionInfo.isValid || isRewriting) 
+              ? "bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed" 
+              : "bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100"
+          )}
+          title={!selectionInfo.isValid ? selectionInfo.reason : "Rewrite with AI"}
+        >
+          {isRewriting ? (
+            <Loader2 size={16} className="animate-spin" />
+          ) : (
+            <Sparkles size={16} />
+          )}
+          AI Clarify
+        </button>
+      </div>
+    </div>
+  );
+};
+
+interface ToolbarButtonProps {
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+  title?: string;
+}
+
+const ToolbarButton: React.FC<ToolbarButtonProps> = ({ onClick, icon, label, title }) => {
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      className="p-2 text-gray-600 hover:bg-gray-100 hover:text-gray-900 rounded-md transition-colors"
+      type="button"
+    >
+      {icon}
+    </button>
+  );
+};
