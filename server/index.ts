@@ -1,54 +1,48 @@
 import { RewriteRequest, RewriteResponse, RewriteIntent } from '../types';
+import { GoogleGenAI } from "@google/genai";
 
 /**
  * SIMULATED BACKEND API
  * 
  * In a real environment, this would be an Express server running on Node.js.
  * To adhere to the constraints of a client-side demo while maintaining
- * the requested file structure, we simulate the network latency and logic here.
+ * the requested file structure, we perform the API call here.
  */
-
-const LATENCY_MS = 800;
 
 export const mockRewriteApi = async (payload: RewriteRequest): Promise<RewriteResponse> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const result = deterministicMockAI(payload);
-      resolve(result);
-    }, LATENCY_MS);
-  });
-};
+  const { text, intent, nodeType } = payload;
 
-/**
- * Deterministic "Mock AI" logic.
- * Simple string manipulations to demonstrate text replacement without
- * breaking document structure.
- */
-function deterministicMockAI(payload: RewriteRequest): RewriteResponse {
-  const { text, intent } = payload;
-  let rewritten = text;
+  try {
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    
+    // Construct a specific system instruction based on the intent
+    const systemPrompt = `You are a professional editor. Your task is to rewrite text inside a ${nodeType} to match the intent: "${intent}".
+    - Return ONLY the rewritten text.
+    - Do not include explanations, quotes, or markdown.
+    - Maintain the original meaning but apply the requested style transformation.`;
 
-  switch (intent) {
-    case RewriteIntent.CLARIFY:
-      rewritten = `(Clarified) ${text.replace(/\bvery\b/g, '').replace(/\bkind of\b/g, '')}`;
-      break;
-    case RewriteIntent.SHORTEN:
-       // Mock shortening: Remove every 4th word or truncation for demo
-       const words = text.split(' ');
-       rewritten = words.length > 5 
-        ? words.slice(0, Math.ceil(words.length * 0.7)).join(' ') + '.' 
-        : text;
-      break;
-    case RewriteIntent.FORMALIZE:
-      rewritten = text
-        .replace(/\bcan't\b/g, 'cannot')
-        .replace(/\bwon't\b/g, 'will not')
-        .replace(/\bgonna\b/g, 'going to') + " Furthermore, we concur.";
-      break;
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: text,
+      config: {
+        systemInstruction: systemPrompt,
+        temperature: 0.7,
+      }
+    });
+
+    const rewrittenText = response.text?.trim() || text;
+
+    return {
+      originalText: text,
+      rewrittenText: rewrittenText
+    };
+
+  } catch (error) {
+    console.error("AI API Error:", error);
+    // Fallback to original text if API fails
+    return {
+      originalText: text,
+      rewrittenText: text // No change on error
+    };
   }
-
-  return {
-    originalText: text,
-    rewrittenText: rewritten
-  };
-}
+};
