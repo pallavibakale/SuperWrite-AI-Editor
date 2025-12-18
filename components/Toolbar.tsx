@@ -1,5 +1,6 @@
 import React from 'react';
 import { EditorView } from 'prosemirror-view';
+import { undo } from 'prosemirror-history';
 import { toggleH1, toggleH2, toggleComment, toggleParagraph } from '../editor/editorSetup';
 import { performRewrite } from '../editor/aiActions';
 import { getSelectionInfo } from '../editor/selectionUtils';
@@ -10,7 +11,8 @@ import {
   MessageSquarePlus, 
   Sparkles, 
   Type, 
-  Loader2 
+  Loader2,
+  RotateCcw
 } from 'lucide-react';
 import { clsx } from 'clsx';
 
@@ -26,6 +28,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ view, editorStateHash }) => {
 
   const { state, dispatch } = view;
   const selectionInfo = getSelectionInfo(state);
+  const canUndo = undo(state);
   
   // Handlers
   const handleToggleH1 = () => {
@@ -45,6 +48,11 @@ export const Toolbar: React.FC<ToolbarProps> = ({ view, editorStateHash }) => {
 
   const handleToggleComment = () => {
     toggleComment(state, dispatch);
+    view.focus();
+  };
+
+  const handleUndo = () => {
+    undo(state, dispatch);
     view.focus();
   };
 
@@ -95,6 +103,22 @@ export const Toolbar: React.FC<ToolbarProps> = ({ view, editorStateHash }) => {
       </div>
 
       <div className="flex items-center gap-1 ml-auto">
+        <button
+          onClick={handleUndo}
+          disabled={!canUndo || isRewriting}
+          className={clsx(
+            "flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors mr-2",
+            "border",
+            (!canUndo || isRewriting)
+              ? "bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed" 
+              : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50 hover:text-gray-900"
+          )}
+          title="Undo last change"
+        >
+          <RotateCcw size={16} />
+          Undo
+        </button>
+
         <button
           onClick={handleRewrite}
           disabled={!selectionInfo.isValid || isRewriting}
