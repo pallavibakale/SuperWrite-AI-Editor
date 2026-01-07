@@ -14,12 +14,18 @@ import { FileUp, FileText, FileDown } from "lucide-react";
 import * as mammoth from "mammoth";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
+import { getDocument, GlobalWorkerOptions } from "pdfjs-dist";
+// Use Vite asset import to reference the worker file URL
+import workerSrc from "pdfjs-dist/build/pdf.worker.mjs?url";
 
-export const Editor: React.FC = () => {
-  const editorRef = useRef<HTMLDivElement>(null);
-  const viewRef = useRef<EditorView | null>(null);
-  const [viewReady, setViewReady] = useState<EditorView | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+// Configure PDF.js worker
+GlobalWorkerOptions.workerSrc = workerSrc;
+
+export const Editor = () => {
+  const editorRef = useRef(null);
+  const viewRef = useRef(null);
+  const [viewReady, setViewReady] = useState(null);
+  const fileInputRef = useRef(null);
 
   // We use a counter to force React to re-render the toolbar
   // whenever the ProseMirror state changes (cursor moved, selection made).
@@ -35,7 +41,7 @@ export const Editor: React.FC = () => {
   `;
 
   // Helper to set document content using ProseMirror transaction
-  const setDocumentContent = (htmlContent: string) => {
+  const setDocumentContent = (htmlContent) => {
     if (!viewRef.current) return;
 
     const contentElement = document.createElement("div");
@@ -57,7 +63,7 @@ export const Editor: React.FC = () => {
   };
 
   // Create a clean ProseMirror doc by removing delete marks and unwrapping insert marks
-  const cleanNode = (node: PMNode): PMNode | null => {
+  const cleanNode = (node) => {
     // Drop entire node if it carries a delete mark
     if (node.marks.some((m) => m.type.name === "delete")) {
       return null;
@@ -73,7 +79,7 @@ export const Editor: React.FC = () => {
       return node.type.schema.text(node.text || "", keptMarks);
     }
 
-    const cleanedChildren: PMNode[] = [];
+    const cleanedChildren = [];
     node.content.forEach((child) => {
       const cleaned = cleanNode(child);
       if (cleaned) cleanedChildren.push(cleaned);
@@ -86,15 +92,17 @@ export const Editor: React.FC = () => {
     );
   };
 
-  const getCleanDoc = (doc: PMNode): PMNode => {
+  const getCleanDoc = (doc) => {
     const cleaned = cleanNode(doc);
-    return cleaned ?? schema.topNodeType.createAndFill()!;
+    return cleaned ?? schema.topNodeType.createAndFill();
   };
 
+  // Escape text before inserting into HTML
+  const escapeHtml = (str) =>
+    str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
   // Handle file upload
-  const handleFileUpload = async (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
+  const handleFileUpload = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -115,9 +123,24 @@ export const Editor: React.FC = () => {
         const result = await mammoth.convertToHtml({ arrayBuffer });
         setDocumentContent(result.value);
       } else if (fileType.endsWith(".pdf")) {
-        // For PDF files, show a message (proper parsing requires pdf.js)
-        alert(
-          "PDF file detected. For this demo, please copy and paste your content directly into the editor.\n\nTo enable PDF parsing, install pdfjs-dist library."
+        // Handle PDF using pdf.js (pdfjs-dist)
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await getDocument({ data: arrayBuffer }).promise;
+
+        const htmlParts = [];
+        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+          const page = await pdf.getPage(pageNum);
+          const textContent = await page.getTextContent();
+          const pageText = textContent.items.map((item) => item.str).join(" ");
+
+          if (pageText.trim()) {
+            htmlParts.push(`<p>${escapeHtml(pageText)}</p>`);
+          }
+        }
+
+        const htmlContent = htmlParts.join("");
+        setDocumentContent(
+          htmlContent || "<p>(No extractable text found in this PDF.)</p>"
         );
       } else {
         alert(
@@ -347,7 +370,7 @@ export const Editor: React.FC = () => {
       />
 
       <div className="bg-gray-50 border-t border-gray-100 p-2 text-xs text-gray-500 text-center">
-        ProseMirror v1.33.0 &bull; React 18
+        ProseMirror v1.33.0 • React 19
       </div>
     </div>
   );

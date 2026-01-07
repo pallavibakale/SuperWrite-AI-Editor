@@ -5,8 +5,6 @@ import { baseKeymap, toggleMark, setBlockType } from "prosemirror-commands";
 import { schema } from "./schema";
 
 // Standard Keymap
-// Cmd-z / Ctrl-z for undo/redo
-// Enter for paragraph break
 const editorKeymap = keymap({
   "Mod-z": undo,
   "Mod-y": redo,
@@ -16,15 +14,11 @@ const editorKeymap = keymap({
   "Mod-u": toggleMark(schema.marks.underline),
 });
 
-export function createEditorState(initialContent?: any): EditorState {
+export function createEditorState(initialContent) {
   return EditorState.create({
     schema,
-    doc: initialContent, // undefined creates empty doc
-    plugins: [
-      history(),
-      editorKeymap,
-      keymap(baseKeymap), // Standard typing behaviors (Backspace, Delete, Enter)
-    ],
+    doc: initialContent,
+    plugins: [history(), editorKeymap, keymap(baseKeymap)],
   });
 }
 
@@ -38,8 +32,8 @@ export const toggleItalic = toggleMark(schema.marks.em);
 export const toggleUnderline = toggleMark(schema.marks.underline);
 
 // Link toggle: when href is provided, apply/update; when href is null, remove.
-export const toggleLink = (href: string | null) => {
-  return (state: EditorState, dispatch?: any) => {
+export const toggleLink = (href) => {
+  return (state, dispatch) => {
     const markType = schema.marks.link;
     if (!href) {
       return toggleMark(markType)(state, dispatch);
@@ -48,7 +42,7 @@ export const toggleLink = (href: string | null) => {
   };
 };
 
-export const markActive = (state: EditorState, markName: string) => {
+export const markActive = (state, markName) => {
   const { from, $from, to, empty } = state.selection;
   const markType = schema.marks[markName];
   if (!markType) return false;

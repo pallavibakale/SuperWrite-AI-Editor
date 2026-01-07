@@ -1,5 +1,4 @@
 import React from "react";
-import { EditorView } from "prosemirror-view";
 import { undo } from "prosemirror-history";
 import {
   markActive,
@@ -14,7 +13,7 @@ import {
 } from "../editor/editorSetup";
 import { performRewrite } from "../editor/aiActions";
 import { getSelectionInfo } from "../editor/selectionUtils";
-import { RewriteIntent } from "../types";
+import { RewriteIntent } from "../types.js";
 import {
   Heading1,
   Heading2,
@@ -30,12 +29,7 @@ import {
 } from "lucide-react";
 import { clsx } from "clsx";
 
-interface ToolbarProps {
-  view: EditorView | null;
-  editorStateHash: number; // Used to force re-render when editor state changes
-}
-
-export const Toolbar: React.FC<ToolbarProps> = ({ view, editorStateHash }) => {
+export const Toolbar = ({ view, editorStateHash }) => {
   const [isRewriting, setIsRewriting] = React.useState(false);
 
   if (!view)
@@ -113,7 +107,6 @@ export const Toolbar: React.FC<ToolbarProps> = ({ view, editorStateHash }) => {
   };
 
   // Check active states for styles
-  // Ideally use a helper to check active marks/nodes
   const boldActive = markActive(state, "strong");
   const italicActive = markActive(state, "em");
   const underlineActive = markActive(state, "underline");
@@ -225,21 +218,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ view, editorStateHash }) => {
   );
 };
 
-interface ToolbarButtonProps {
-  onClick: () => void;
-  icon: React.ReactNode;
-  label: string;
-  title?: string;
-  active?: boolean;
-}
-
-const ToolbarButton: React.FC<ToolbarButtonProps> = ({
-  onClick,
-  icon,
-  label,
-  title,
-  active,
-}) => {
+const ToolbarButton = ({ onClick, icon, label, title, active }) => {
   return (
     <button
       onClick={onClick}

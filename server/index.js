@@ -1,9 +1,6 @@
-import { RewriteRequest, RewriteResponse, RewriteIntent } from "../types";
 import { GoogleGenAI } from "@google/genai";
 
-export const mockRewriteApi = async (
-  payload: RewriteRequest
-): Promise<RewriteResponse> => {
+export const mockRewriteApi = async (payload) => {
   const { text, intent, nodeType } = payload;
 
   try {
@@ -15,7 +12,6 @@ export const mockRewriteApi = async (
 
     const ai = new GoogleGenAI({ apiKey });
 
-    // Construct a specific system instruction based on the intent
     const systemPrompt = `You are a professional editor. Your task is to rewrite text inside a ${nodeType} to match the intent: "${intent}".
     - Return ONLY the rewritten text.
     - Do not include explanations, quotes, or markdown.
@@ -38,7 +34,6 @@ export const mockRewriteApi = async (
     };
   } catch (error) {
     console.error("AI API Error:", error);
-    // Fallback to original text if API fails
     return {
       originalText: text,
       rewrittenText: text,

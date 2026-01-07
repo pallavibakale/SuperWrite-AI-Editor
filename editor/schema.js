@@ -1,10 +1,4 @@
-import { Schema, DOMOutputSpec } from "prosemirror-model";
-
-// 1. Nodes
-// doc: root
-// paragraph: block containing inline
-// heading: block containing inline, has level
-// text: inline text
+import { Schema } from "prosemirror-model";
 
 const nodes = {
   doc: {
@@ -14,7 +8,7 @@ const nodes = {
     content: "inline*",
     group: "block",
     parseDOM: [{ tag: "p" }],
-    toDOM: (): DOMOutputSpec => ["p", 0],
+    toDOM: () => ["p", 0],
   },
   heading: {
     attrs: { level: { default: 1 } },
@@ -26,42 +20,36 @@ const nodes = {
       { tag: "h2", attrs: { level: 2 } },
       { tag: "h3", attrs: { level: 3 } },
     ],
-    toDOM: (node: any): DOMOutputSpec => ["h" + node.attrs.level, 0],
+    toDOM: (node) => ["h" + node.attrs.level, 0],
   },
   text: {
     group: "inline",
   },
 };
 
-// 2. Marks
-// comment: wraps text
-// strong/em/underline/link: rich text formatting
-// insert/delete: for future diffing features (track changes)
-
 const marks = {
   comment: {
     parseDOM: [{ tag: "span.comment" }],
-    toDOM: (): DOMOutputSpec => ["span", { class: "comment" }, 0],
+    toDOM: () => ["span", { class: "comment" }, 0],
   },
   strong: {
     parseDOM: [
       { tag: "strong" },
       {
         tag: "b",
-        getAttrs: (node) =>
-          (node as HTMLElement).style.fontWeight !== "normal" && null,
+        getAttrs: (node) => node.style?.fontWeight !== "normal" && null,
       },
       { style: "font-weight=bold" },
     ],
-    toDOM: (): DOMOutputSpec => ["strong", 0],
+    toDOM: () => ["strong", 0],
   },
   em: {
     parseDOM: [{ tag: "em" }, { tag: "i" }, { style: "font-style=italic" }],
-    toDOM: (): DOMOutputSpec => ["em", 0],
+    toDOM: () => ["em", 0],
   },
   underline: {
     parseDOM: [{ tag: "u" }, { style: "text-decoration=underline" }],
-    toDOM: (): DOMOutputSpec => ["u", 0],
+    toDOM: () => ["u", 0],
   },
   link: {
     attrs: { href: {} },
@@ -69,12 +57,10 @@ const marks = {
     parseDOM: [
       {
         tag: "a[href]",
-        getAttrs: (dom) => ({
-          href: (dom as HTMLElement).getAttribute("href"),
-        }),
+        getAttrs: (dom) => ({ href: dom.getAttribute("href") }),
       },
     ],
-    toDOM: (node): DOMOutputSpec => [
+    toDOM: (node) => [
       "a",
       {
         href: node.attrs.href,
@@ -85,11 +71,11 @@ const marks = {
   },
   insert: {
     parseDOM: [{ tag: "span.insert" }],
-    toDOM: (): DOMOutputSpec => ["span", { class: "insert" }, 0],
+    toDOM: () => ["span", { class: "insert" }, 0],
   },
   delete: {
     parseDOM: [{ tag: "span.delete" }],
-    toDOM: (): DOMOutputSpec => ["span", { class: "delete" }, 0],
+    toDOM: () => ["span", { class: "delete" }, 0],
   },
 };
 
