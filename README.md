@@ -41,3 +41,10 @@ This project is set up as a standard React SPA.
 1. `npm install`
 2. `npm run dev`
 3. Select text in the editor -> Click "AI Clarify".
+
+### What you can do now
+- Bold, italic, underline, headings, and links (toolbar buttons; shortcuts: Ctrl/Cmd+B/I/U)
+- Upload .txt/.doc/.docx/.pdf, load the sample template, and export as HTML or PDF
+- AI clarify on valid selections with schema-safe ProseMirror transactions
+
+![Editor screenshot](image.png)
