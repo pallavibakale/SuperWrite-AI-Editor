@@ -27,6 +27,7 @@ import {
   Italic,
   Underline,
   Link2,
+  ChevronDown,
 } from "lucide-react";
 import { clsx } from "clsx";
 
@@ -37,6 +38,23 @@ interface ToolbarProps {
 
 export const Toolbar: React.FC<ToolbarProps> = ({ view, editorStateHash }) => {
   const [isRewriting, setIsRewriting] = React.useState(false);
+  const [showAIDropdown, setShowAIDropdown] = React.useState(false);
+  const dropdownRef = React.useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setShowAIDropdown(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   if (!view)
     return (
@@ -101,14 +119,15 @@ export const Toolbar: React.FC<ToolbarProps> = ({ view, editorStateHash }) => {
     view.focus();
   };
 
-  const handleRewrite = async () => {
+  const handleRewrite = async (intent: RewriteIntent) => {
     if (!selectionInfo.isValid) {
       console.warn("Invalid selection detected by UI handler");
       return;
     }
 
     setIsRewriting(true);
-    await performRewrite(view, RewriteIntent.CLARIFY);
+    setShowAIDropdown(false);
+    await performRewrite(view, intent);
     setIsRewriting(false);
   };
 
@@ -199,27 +218,60 @@ export const Toolbar: React.FC<ToolbarProps> = ({ view, editorStateHash }) => {
           Undo
         </button>
 
-        <button
-          onClick={handleRewrite}
-          disabled={!selectionInfo.isValid || isRewriting}
-          className={clsx(
-            "flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
-            "border",
-            !selectionInfo.isValid || isRewriting
-              ? "bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed"
-              : "bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100"
+        <div className="relative" ref={dropdownRef}>
+          <button
+            onClick={() => setShowAIDropdown(!showAIDropdown)}
+            disabled={!selectionInfo.isValid || isRewriting}
+            className={clsx(
+              "flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
+              "border",
+              !selectionInfo.isValid || isRewriting
+                ? "bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed"
+                : "bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100"
+            )}
+            title={
+              !selectionInfo.isValid ? selectionInfo.reason : "Rewrite with AI"
+            }
+          >
+            {isRewriting ? (
+              <Loader2 size={16} className="animate-spin" />
+            ) : (
+              <Sparkles size={16} />
+            )}
+            AI Clarify
+            {!isRewriting && <ChevronDown size={16} />}
+          </button>
+
+          {showAIDropdown && (
+            <div className="absolute right-0 mt-1 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-20">
+              <button
+                onClick={() => handleRewrite(RewriteIntent.CLARIFY)}
+                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 first:rounded-t-md transition-colors"
+              >
+                <span className="font-medium">Clarify</span>
+                <p className="text-xs text-gray-500">
+                  Make text clearer and easier to understand
+                </p>
+              </button>
+              <button
+                onClick={() => handleRewrite(RewriteIntent.SHORTEN)}
+                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors"
+              >
+                <span className="font-medium">Shorten</span>
+                <p className="text-xs text-gray-500">Make text more concise</p>
+              </button>
+              <button
+                onClick={() => handleRewrite(RewriteIntent.FORMALIZE)}
+                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 last:rounded-b-md transition-colors"
+              >
+                <span className="font-medium">Formalize</span>
+                <p className="text-xs text-gray-500">
+                  Use more formal language
+                </p>
+              </button>
+            </div>
           )}
-          title={
-            !selectionInfo.isValid ? selectionInfo.reason : "Rewrite with AI"
-          }
-        >
-          {isRewriting ? (
-            <Loader2 size={16} className="animate-spin" />
-          ) : (
-            <Sparkles size={16} />
-          )}
-          AI Clarify
-        </button>
+        </div>
       </div>
     </div>
   );
