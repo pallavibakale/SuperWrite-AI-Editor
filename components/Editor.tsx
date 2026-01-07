@@ -347,7 +347,7 @@ export const Editor: React.FC = () => {
       />
 
       <div className="bg-gray-50 border-t border-gray-100 p-2 text-xs text-gray-500 text-center">
-        ProseMirror v1.33.0 &bull; React 18 &bull; Mock AI Backend
+        ProseMirror v1.33.0 &bull; React 18
       </div>
     </div>
   );
