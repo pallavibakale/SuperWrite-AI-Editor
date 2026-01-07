@@ -10,12 +10,16 @@ import {
 import { schema } from "../editor/schema";
 import { Toolbar } from "./Toolbar";
 import { TextSelection } from "prosemirror-state";
-import { FileUp, FileText, FileDown } from "lucide-react";
+import { FileUp, FileText, FileDown, Sparkles } from "lucide-react";
 import * as mammoth from "mammoth";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 
-export const Editor: React.FC = () => {
+interface EditorProps {
+  initialContent?: string | null;
+}
+
+export const Editor: React.FC<EditorProps> = ({ initialContent }) => {
   const editorRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const [viewReady, setViewReady] = useState<EditorView | null>(null);
@@ -265,9 +269,19 @@ export const Editor: React.FC = () => {
   useEffect(() => {
     if (!editorRef.current) return;
 
-    // Start with empty content
+    // Determine initial content
+    let htmlContent = "<p></p>";
+    if (initialContent) {
+      // User uploaded a file
+      htmlContent = initialContent;
+    } else if (initialContent === null) {
+      // User selected template (null means use default sample)
+      htmlContent = getSampleContent();
+    }
+    // else initialContent is undefined, start with empty content
+
     const contentElement = document.createElement("div");
-    contentElement.innerHTML = "<p></p>";
+    contentElement.innerHTML = htmlContent;
 
     const doc = PMDOMParser.fromSchema(schema).parse(contentElement);
     const state = createEditorState(doc);
@@ -291,12 +305,21 @@ export const Editor: React.FC = () => {
       view.destroy();
       viewRef.current = null;
     };
-  }, []);
+  }, [initialContent]);
 
   return (
-    <div className="flex flex-col h-screen max-w-4xl mx-auto bg-white shadow-xl my-8 rounded-lg overflow-hidden border border-gray-200">
+    <div className="flex flex-col h-screen max-w-4xl mx-auto bg-white/95 backdrop-blur-sm shadow-2xl my-8 rounded-lg overflow-hidden border border-white/50">
+      {/* Header with Logo */}
+      <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white shadow-md">
+        <div className="flex items-center gap-2">
+          <Sparkles className="w-6 h-6" />
+          <span className="text-lg font-bold">SuperWrite AI</span>
+        </div>
+        <span className="text-sm opacity-90">Intelligent Document Editor</span>
+      </div>
+
       {/* File Upload and Template Buttons */}
-      <div className="flex items-center gap-2 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-blue-200">
+      <div className="flex items-center gap-2 p-3 bg-gradient-to-r from-blue-50/80 to-indigo-50/80 backdrop-blur-sm border-b border-blue-200/50">
         <input
           ref={fileInputRef}
           type="file"
